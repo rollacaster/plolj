@@ -1,0 +1,5 @@
+{:deps {rollacaster/clj-axidraw {:git/url "https://github.com/rollacaster/clj-axidraw"
+                                         :sha "e31824cf8def9dd01d9b3aa5a5f2e5eddf70f900"}
+        clj-http/clj-http {:mvn/version "3.12.1"}
+        image-resizer/image-resizer {:mvn/version "0.1.10"}}
+ :paths ["src" "resources"]}
