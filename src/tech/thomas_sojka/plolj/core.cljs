@@ -6,12 +6,14 @@
             [thi.ng.math.core :as math]
             [canvas2svg]))
 
-(defonce svg (atom nil))
+(def svg (r/atom nil))
 (defonce ctx (atom nil))
+(def loading-state (r/atom nil))
 (def ui-state (r/atom {:y-line-space 7
                        :dark-ampl 2
                        :light-ampl 8
                        :noise-ampl 2}))
+(defonce worker (js/Worker. "/js/worker.js"))
 
 (defn get-lightness [[r g b a]]
   (:l (col/as-hsla (col/rgba (/ r 255) (/ g 255) (/ b 255) (/ a 255)))))
@@ -81,71 +83,97 @@
      [:div.mb2
       [:label.mr2 {:for uuid} label]
       [:span.fw7 value]]
-     [:input.w5.mb4
+     [:input.w5.mb4.outline-0
       {:type "range" :min 1 :max max :value value
        :id uuid
        :on-change on-change}]]))
 
 (defn app []
-  [:div
+  [:div.overflow-hidden
    {:style {:height "100vh"
             :display "flex"
             :align-items "center"}}
-   [:button {:style {:position "absolute" :top 64 :left 64 :padding "0.5rem 1rem" :border "none"
-                     :background-color "#F3F4F6" :border-radius "0.5rem"
-                     :box-shadow "5px 5px 5px #B91C1C" :cursor "pointer"}
-             :on-click (fn []
-                         (let [s (new js/XMLSerializer)]
-                           (->  (js/fetch "http://localhost:8000/plot"
-                                          (clj->js
-                                           {:method "POST"
-                                            :headers {"content-type" "application/json"}
-                                            :body (.serializeToString s @svg)}))
-                                (.catch prn))))}
-    [:span {:style {:font-size 32 :color "#111827"}} "Plot"]]
    [:div#main.relative
     {:style {:box-shadow "0 0 #0000, 0 0 #0000, 0 25px 50px -12px rgba(0, 0, 0, 0.25)"
-             :margin "auto"}
+             :margin "auto"
+             :transition "0.5s all"
+             :transform (str "translateX(" (if @svg -120 0) "px)")}
      :id "drop_zone"
      :onDragOver (fn [ev] (.preventDefault ev))
      :onDrop (fn [ev]
                (.preventDefault ev)
+               (reset! loading-state "REMOVE_BG")
                (let [file (.getAsFile (first (vec ^js (.-dataTransfer.items ev))))
                      form-data (new js/FormData)]
                  (.append form-data "file" file)
                  (-> (js/fetch "http://localhost:8000/remove-bg" (clj->js {:method "POST" :body form-data}))
                      (.then #(.blob %))
-                     (.then (fn [blob] (draw-image-on-canvas (.createObjectURL js/URL blob))))
-                     (.then (fn [image] (reset! svg (volatize-image image))))
+                     (.then (fn [blob]
+                              (reset! loading-state "VOLATIZE_IMG")
+                              (.. worker (postMessage (.createObjectURL js/URL blob)))))
+                     ;; (.then (fn [blob] (draw-image-on-canvas (.createObjectURL js/URL blob))))
+                     ;; (.then (fn [image]
+                     ;;          (reset! ctx image)
+                     ;;          (reset! loading-state "VOLATIZE_IMG")
+                     ;;          (reset! svg (volatize-image image))
+                     ;;          (reset! loading-state "DONE")))
                      (.catch prn))))}
     [:canvas#canvas
      {:width width
       :height height}]
-    [:div.sans-serif.absolute
-     {:style {:right "-18rem" :top "0rem"}}
-     [:div.flex.flex-column
-      [param-range {:label "Line spacing"
-                    :value (:y-line-space @ui-state)
-                    :on-change (fn [e]
-                                 (let [new-value ^js (.-target.value e)]
-                                   (redraw (swap! ui-state assoc :y-line-space (js/parseInt new-value)))))}]
-      [param-range {:label "Darkness amplitude"
-                    :value (:dark-ampl @ui-state)
-                    :max 8
-                    :on-change (fn [e]
-                                 (let [new-value ^js (.-target.value e)]
-                                   (redraw (swap! ui-state assoc :dark-ampl (js/parseInt new-value)))))}]
-      [param-range {:label "Lightness amplitude"
-                    :value (:light-ampl @ui-state)
-                    :max 8
-                    :on-change (fn [e]
-                                 (let [new-value ^js (.-target.value e)]
-                                   (redraw (swap! ui-state assoc :light-ampl (js/parseInt new-value)))))}]
-      [param-range {:label "Noise amplitude"
-                    :value (:noise-ampl @ui-state)
-                    :on-change (fn [e]
-                                 (let [new-value ^js (.-target.value e)]
-                                   (redraw (swap! ui-state assoc :noise-ampl (js/parseInt new-value)))))}]]]]])
+    [:div.absolute.f2.w-100.flex.justify-center
+     {:style {:top "50%" :left "50%"
+              :opacity (if (and @loading-state (not= @loading-state "DONE")) 1 0)
+              :transition "all 0.5s"
+              :transform "translate(-50%, -50%"}}
+     [:span.absolute
+      {:class (when (= @loading-state "VOLATIZE_IMG") "slide-out-bck-bottom")}
+      "Remove background"]
+     [:span
+      {:class (when (= @loading-state "DONE") "slide-out-bck-bottom")
+       :style {:opacity (if (or (= @loading-state "VOLATIZE_IMG") (= @loading-state "DONE")) 1 0)
+               :transition "all 0.5s 1s"}}
+      "Volatize image"]]
+    [:div.absolute.h-100.flex.flex-column.justify-between
+     {:style {:opacity (if @svg 1 0)
+              :transition "all 0.5s 0.5s"
+              :top 0
+              :right "-22rem"}}
+     [:div.sans-serif
+      [:div.flex.flex-column
+       [param-range {:label "Line spacing"
+                     :value (:y-line-space @ui-state)
+                     :on-change (fn [e]
+                                  (let [new-value ^js (.-target.value e)]
+                                    (redraw (swap! ui-state assoc :y-line-space (js/parseInt new-value)))))}]
+       [param-range {:label "Darkness amplitude"
+                     :value (:dark-ampl @ui-state)
+                     :max 8
+                     :on-change (fn [e]
+                                  (let [new-value ^js (.-target.value e)]
+                                    (redraw (swap! ui-state assoc :dark-ampl (js/parseInt new-value)))))}]
+       [param-range {:label "Lightness amplitude"
+                     :value (:light-ampl @ui-state)
+                     :max 8
+                     :on-change (fn [e]
+                                  (let [new-value ^js (.-target.value e)]
+                                    (redraw (swap! ui-state assoc :light-ampl (js/parseInt new-value)))))}]
+       [param-range {:label "Noise amplitude"
+                     :value (:noise-ampl @ui-state)
+                     :on-change (fn [e]
+                                  (let [new-value ^js (.-target.value e)]
+                                    (redraw (swap! ui-state assoc :noise-ampl (js/parseInt new-value)))))}]]]
+     [:button.shadow-2.pointer.bn.pv2.ph3.br3.grow.outline-0.mb1
+      {:style {:bottom 0 :background-color "#F3F4F6" }
+       :on-click (fn []
+                   (let [s (new js/XMLSerializer)]
+                     (->  (js/fetch "http://localhost:8000/plot"
+                                    (clj->js
+                                     {:method "POST"
+                                      :headers {"content-type" "application/json"}
+                                      :body (.serializeToString s @svg)}))
+                          (.catch prn))))}
+      [:span {:style {:font-size 32 :color "#111827"}} "Plot"]]]]])
 
 
 
@@ -157,5 +185,12 @@
                  (reset! ctx image)
                  (reset! svg (volatize-image image))))
         (.catch prn))))
+(defn init []
+  (.. worker (addEventListener "message" (fn [e]
+                                           (.transferFromImageBitmap
+                                            (.getContext (js/document.getElementById "canvas") "bitmaprenderer")
+                                            (.-data e))
+                                           (reset! loading-state "DONE")
+                                           (js/console.log e)))))
 
 

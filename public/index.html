@@ -4,6 +4,57 @@
     <meta charset="utf-8" />
     <meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible" />
     <title>Plolj</title>
+    <style>
+      input[type='range']::-webkit-slider-runnable-track {
+        cursor: pointer;
+        animate: 0.2s;
+        background: #f3f4f6 !important;
+        border-radius: 5px;
+        height: 12px;
+      }
+      input[type='range']::-webkit-slider-thumb {
+        height: 12px;
+        width: 12px;
+        border-radius: 100%;
+        background: #6b7280;
+        cursor: pointer;
+        -webkit-appearance: none;
+        border: none;
+      }
+      input[type='range'] {
+        -webkit-appearance: none;
+      }
+      .slide-out-bck-bottom {
+        -webkit-animation: slide-out-bck-bottom 0.7s
+          cubic-bezier(0.55, 0.085, 0.68, 0.53) both;
+        animation: slide-out-bck-bottom 0.7s
+          cubic-bezier(0.55, 0.085, 0.68, 0.53) both;
+      }
+      @-webkit-keyframes slide-out-bck-bottom {
+        0% {
+          -webkit-transform: translateZ(0) translateY(0);
+          transform: translateZ(0) translateY(0);
+          opacity: 1;
+        }
+        100% {
+          -webkit-transform: translateZ(-1100px) translateY(1000px);
+          transform: translateZ(-1100px) translateY(1000px);
+          opacity: 0;
+        }
+      }
+      @keyframes slide-out-bck-bottom {
+        0% {
+          -webkit-transform: translateZ(0) translateY(0);
+          transform: translateZ(0) translateY(0);
+          opacity: 1;
+        }
+        100% {
+          -webkit-transform: translateZ(-1100px) translateY(1000px);
+          transform: translateZ(-1100px) translateY(1000px);
+          opacity: 0;
+        }
+      }
+    </style>
     <link
       rel="stylesheet"
       href="https://unpkg.com/browse/normalize.css@8.0.1/normalize.css"
@@ -15,6 +66,7 @@
   </head>
   <body>
     <div id="app"></div>
+    <script src="js/shared.js"></script>
     <script src="js/main.js"></script>
   </body>
 </html>
