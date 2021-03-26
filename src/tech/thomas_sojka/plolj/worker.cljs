@@ -10,8 +10,6 @@
   (if (< img-width img-height)
     [width (* (/ img-width img-height) width)]
     [(* (/ img-width img-height) height) height]))
-(prn
- (resize 1507 1507))
 
 (defn draw-image-on-canvas [url]
   (let [canvas (new js/OffscreenCanvas width height)
@@ -20,7 +18,6 @@
       (.then (fn [res] (.blob res)))
       (.then (fn [blob] (js/createImageBitmap blob)))
       (.then (fn [img]
-               (js/console.log "img" (.-width img))
                (let [[r-width r-height] (resize (.-width img) (.-height img))]
                  (.drawImage ctx img
                              (/ (- width r-width) 2)
@@ -74,4 +71,4 @@
     (fn [^js e]
       (-> (draw-image-on-canvas (.. e -data))
           (.then (fn [ctx] (volatize-image ctx)))
-          (.then js/postMessage)))))
+          (.then (fn [bitmap] (js/postMessage bitmap)))))))

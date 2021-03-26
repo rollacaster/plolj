@@ -12,7 +12,7 @@
  {:app {:target :browser
         :output-dir "public/js"
         :asset-path "/js"
-        :modules {:main {:entries [tech.thomas-sojka.plolj.core]
+        :modules {:main {:init-fn tech.thomas-sojka.plolj.core/init
                          :depends-on #{:shared}}
                   :shared {:entries []}
                   :worker {:init-fn tech.thomas-sojka.plolj.worker/init

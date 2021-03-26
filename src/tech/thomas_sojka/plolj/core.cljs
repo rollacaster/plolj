@@ -190,7 +190,6 @@
                                            (.transferFromImageBitmap
                                             (.getContext (js/document.getElementById "canvas") "bitmaprenderer")
                                             (.-data e))
-                                           (reset! loading-state "DONE")
-                                           (js/console.log e)))))
+                                           (reset! loading-state "DONE")))))
 
 
