@@ -4,7 +4,8 @@
             [tech.thomas-sojka.plolj.constants :refer [width height]]
             [thi.ng.color.core :as col]
             [thi.ng.math.core :as math]
-            [canvas2svg]))
+            [canvas2svg]
+            [tech.thomas-sojka.plolj.components :refer [drawing-canvas]]))
 
 (def svg (r/atom nil))
 (defonce ctx (atom nil))
@@ -111,35 +112,28 @@
    {:style {:height "100vh"
             :display "flex"
             :align-items "center"}}
-   [:div#main.relative
-    {:style {:box-shadow "0 0 #0000, 0 0 #0000, 0 25px 50px -12px rgba(0, 0, 0, 0.25)"
-             :margin "auto"
-             :transition "0.5s all"
-             :transform (str "translateX(" (if @svg -120 0) "px)")}
-     :id "drop_zone"
-     :onDragOver (fn [ev] (.preventDefault ev))
-     :onDrop (fn [ev]
-               (.preventDefault ev)
-               (reset! loading-state "REMOVE_BG")
-               (let [file (.getAsFile (first (vec ^js (.-dataTransfer.items ev))))
-                     form-data (new js/FormData)]
-                 (.append form-data "file" file)
-                 (-> (js/fetch "http://localhost:8000/remove-bg" (clj->js {:method "POST" :body form-data}))
-                     (.then #(.blob %))
-                     #_(.then (fn [blob]
-                              (reset! loading-state "VOLATIZE_IMG")
-                              (.. worker (postMessage (.createObjectURL js/URL blob)))))
-                     (.then (fn [blob] (draw-image-on-canvas (.createObjectURL js/URL blob))))
-                     #_(draw-image-on-canvas (.createObjectURL js/URL file))
-                     (.then (fn [image]
-                              (reset! ctx image)
-                              (reset! loading-state "VOLATIZE_IMG")
-                              (reset! svg (volatize-image image))
-                              (reset! loading-state "DONE")))
-                     (.catch prn))))}
-    [:canvas#canvas
-     {:width width
-      :height height}]
+   [drawing-canvas
+    {:width width :height height
+     :on-drop (fn [ev]
+                (.preventDefault ev)
+                (reset! loading-state "REMOVE_BG")
+                (let [file (.getAsFile (first (vec ^js (.-dataTransfer.items ev))))
+                      form-data (new js/FormData)]
+                  (.append form-data "file" file)
+                  (-> #_(js/fetch "http://localhost:8000/remove-bg" (clj->js {:method "POST" :body form-data}))
+                      #_(.then #(.blob %))
+                      #_(.then (fn [blob]
+                                 (reset! loading-state "VOLATIZE_IMG")
+                                 (.. worker (postMessage (.createObjectURL js/URL blob)))))
+                      #_(.then (fn [blob] (draw-image-on-canvas (.createObjectURL js/URL blob))))
+                      (draw-image-on-canvas (.createObjectURL js/URL file))
+                      (.then (fn [image]
+                               (reset! ctx image)
+                               (reset! loading-state "VOLATIZE_IMG")
+                               (reset! svg (volatize-image image))
+                               (reset! loading-state "DONE")))
+                      (.catch prn))))
+     :style {:transform (str "translateX(" (if @svg -120 0) "px)")}}
     [:div.absolute.f2.w-100.flex.justify-center
      {:style {:top "50%" :left "50%"
               :opacity (if (and @loading-state (not= @loading-state "DONE")) 1 0)
