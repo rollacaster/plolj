@@ -9,20 +9,25 @@
 (def svg (r/atom nil))
 (defonce ctx (atom nil))
 (def loading-state (r/atom nil))
-(def ui-state (r/atom {:y-line-space 7
-                       :dark-ampl 2
-                       :light-ampl 8
-                       :noise-ampl 2}))
+(def init-state {:y-line-space 5
+                 :dark-ampl 8
+                 :light-ampl 2
+                 :noise-ampl 2})
+(def ui-state (r/atom init-state))
 (defonce worker (js/Worker. "/js/worker.js"))
 
 (defn get-lightness [[r g b a]]
   (:l (col/as-hsla (col/rgba (/ r 255) (/ g 255) (/ b 255) (/ a 255)))))
 
+(defn resize [img-width img-height]
+  (if (< img-width img-height)
+    [(* (/ img-width img-height) height) height]
+    [width (* (/ img-width img-height) width)]))
+
 (defn volatize-image
   ([ctx]
-   (volatize-image ctx {}))
-  ([ctx {:keys [y-line-space dark-ampl light-ampl noise-ampl]
-         :or {y-line-space 7 dark-ampl 2 light-ampl 8 noise-ampl 2}}]
+   (volatize-image ctx @ui-state))
+  ([ctx {:keys [y-line-space dark-ampl light-ampl noise-ampl]}]
    (assert y-line-space)
    (assert dark-ampl)
    (assert light-ampl)
@@ -31,6 +36,15 @@
          data (->> (array-seq (.-data (.getImageData ctx 0 0 width height)))
                    (partition 4)
                    (partition width))]
+     (set! (.-fillStyle ctx2) "black")
+     (.fillRect ctx2 0 0 width height)
+     (.beginPath ctx2)
+     (set! (.-strokeStyle ctx2) "red")
+     (set! (.-fillStyle ctx2) "green")
+     (.rect ctx2 0 0 (- width 1) (- height 1))
+     (.stroke ctx2)
+
+     (set! (.-strokeStyle ctx2) "white")
      (doseq [y (range 0 height y-line-space)]
        (.beginPath ctx2)
        (loop [x 0
@@ -68,7 +82,11 @@
                  (fn []
                    (set! (.-width canvas) width)
                    (set! (.-height canvas) height)
-                   (.drawImage ctx img 0 0 width height)
+                   (let [[r-width r-height] (resize (.-width img) (.-height img))]
+                     (.drawImage ctx img
+                                 (/ (- width r-width) 2)
+                                 (/ (- height r-height) 2)
+                                 r-width r-height))
                    (resolve ctx)))
            (set! (.-src img) url)))))
 
@@ -108,15 +126,16 @@
                  (.append form-data "file" file)
                  (-> (js/fetch "http://localhost:8000/remove-bg" (clj->js {:method "POST" :body form-data}))
                      (.then #(.blob %))
-                     (.then (fn [blob]
+                     #_(.then (fn [blob]
                               (reset! loading-state "VOLATIZE_IMG")
                               (.. worker (postMessage (.createObjectURL js/URL blob)))))
-                     ;; (.then (fn [blob] (draw-image-on-canvas (.createObjectURL js/URL blob))))
-                     ;; (.then (fn [image]
-                     ;;          (reset! ctx image)
-                     ;;          (reset! loading-state "VOLATIZE_IMG")
-                     ;;          (reset! svg (volatize-image image))
-                     ;;          (reset! loading-state "DONE")))
+                     (.then (fn [blob] (draw-image-on-canvas (.createObjectURL js/URL blob))))
+                     #_(draw-image-on-canvas (.createObjectURL js/URL file))
+                     (.then (fn [image]
+                              (reset! ctx image)
+                              (reset! loading-state "VOLATIZE_IMG")
+                              (reset! svg (volatize-image image))
+                              (reset! loading-state "DONE")))
                      (.catch prn))))}
     [:canvas#canvas
      {:width width
