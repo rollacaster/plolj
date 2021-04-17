@@ -1,7 +1,7 @@
 (ns tech.thomas-sojka.plolj.server
   (:require [clj-http.client :as client]
-            [clj-ssh.cli :as ssh :refer [default-session-options sftp]]
             [clojure.java.io :as io]
+            [clojure.java.shell :refer [sh]]
             [clojure.string :as str]
             [compojure.core :refer [defroutes POST]]
             [mikera.image.core :as img]
@@ -57,8 +57,6 @@
       (svg/serialize)
       (spit "test.svg")))
 
-(default-session-options {:strict-host-key-checking :no})
-
 (defn fetch-removed-background-image [file filetype]
   (let [current-date (.format (java.text.SimpleDateFormat. "yyyy-MM-dd-HH-mm") (new java.util.Date))
         temp-filename (str "resources/removed-background/" current-date "." filetype)]
@@ -87,11 +85,8 @@
            :body file-without-bg}))
   (POST "/plot" svg
         (spit "resources/current.svg" (body-string svg))
-        (sftp "axidraw" :put "resources/current.svg" "plots/current.svg" :username "pi")
-        #_(ssh/ssh "axidraw" "/home/pi/.local/bin/axicli -m manual -M walk_mmy --walk_dist -218" :username "pi")
-        (ssh/ssh "axidraw" "/home/pi/.local/bin/axicli plots/current.svg" :username "pi")
-        #_(ssh/ssh "axidraw" "/home/pi/.local/bin/axicli -m manual -M walk_mmy --walk_dist 218" :username "pi")
-        (ssh/ssh "axidraw" "/home/pi/.local/bin/axicli -m manual -M disable_xy" :username "pi")
+        (sh "axicli" "-N" "resources/current.svg")
+        (sh "axicli" "-m" "manual" "-M" "disable_xy")
         {:status 200}))
 
 (when @server

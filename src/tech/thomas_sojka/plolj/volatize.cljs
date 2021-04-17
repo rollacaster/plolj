@@ -100,94 +100,90 @@
 
 (def redraw
   (goog.functions.debounce
-   (fn [params] (volatize-image @ctx params))
+   (fn [params] (reset! svg (volatize-image @ctx params)))
    1000))
 
+(defn remove-bg [file]
+  (let [form-data (new js/FormData)]
+    (.append form-data "file" file)
+    (-> (js/fetch "http://localhost:8000/remove-bg" (clj->js {:method "POST" :body form-data}))
+        (.then #(.blob %)))))
+
+(defn create-url [obj]
+  (js/Promise.resolve
+   (draw-image-on-canvas (.createObjectURL js/URL obj))))
+(def remove-bg? false)
 (defn main []
-  [drawing-canvas
-      {:width width :height height
-       :on-drop (fn [ev]
-                  (.preventDefault ev)
-                  (reset! loading-state "REMOVE_BG")
-                  (let [file (.getAsFile (first (vec ^js (.-dataTransfer.items ev))))
-                        form-data (new js/FormData)]
-                    (.append form-data "file" file)
-                    (-> #_(js/fetch "http://localhost:8000/remove-bg" (clj->js {:method "POST" :body form-data}))
-                        #_(.then #(.blob %))
-                        #_(.then (fn [blob]
-                                   (reset! loading-state "VOLATIZE_IMG")
-                                   (.. worker (postMessage (.createObjectURL js/URL blob)))))
-                        #_(.then (fn [blob] (draw-image-on-canvas (.createObjectURL js/URL blob))))
-                        (draw-image-on-canvas (.createObjectURL js/URL file))
-                        (.then (fn [image]
-                                 (reset! ctx image)
-                                 (reset! loading-state "VOLATIZE_IMG")
-                                 (reset! svg (volatize-image image))
-                                 (reset! loading-state "DONE")))
-                        (.catch prn))))
-       :style {:transform (str "translateX(" (if @svg -120 0) "px)")}}
-   [:canvas#canvas
-    {:width width
-     :height height}]
-      [:div.absolute.f2.w-100.flex.justify-center
-       {:style {:top "50%" :left "50%"
-                :opacity (if (and @loading-state (not= @loading-state "DONE")) 1 0)
-                :transition "all 0.5s"
-                :transform "translate(-50%, -50%"}}
-       [:span.absolute
+  [:<>
+   [:div.relative.flex.justify-center.w-100
+    [drawing-canvas
+     {:width width :height height
+      :on-drop (fn [ev]
+                 (.preventDefault ev)
+                 (reset! loading-state "REMOVE_BG")
+                 (let [file (.getAsFile (first (vec ^js (.-dataTransfer.items ev))))]
+                   (-> (if remove-bg? remove-bg file)
+                       (.then create-url)
+                       (.then (fn [image]
+                                (reset! ctx image)
+                                (reset! loading-state "VOLATIZE_IMG")
+                                (reset! svg (volatize-image image))
+                                (reset! loading-state "DONE")))
+                       (.catch prn))))
+      :style {:transform (str "translateX(" (if @svg -120 0) "px)")}}
+     [:canvas#canvas
+      {:width width
+       :height height}]]
+    [:div.absolute.f3.w-100.flex.justify-center
+     #_[:span.absolute
         {:class (when (= @loading-state "VOLATIZE_IMG") "slide-out-bck-bottom")}
         "Remove background"]
-       [:span
+     #_[:span
         {:class (when (= @loading-state "DONE") "slide-out-bck-bottom")
          :style {:opacity (if (or (= @loading-state "VOLATIZE_IMG") (= @loading-state "DONE")) 1 0)
                  :transition "all 0.5s 1s"}}
-        "Volatize image"]]
-      [:div.absolute.h-100.flex.flex-column.justify-between
-       {:style {:opacity (if @svg 1 0)
-                :transition "all 0.5s 0.5s"
-                :top 0
-                :right "-22rem"}}
-       [:div.sans-serif
-        [:div.flex.flex-column
-         [param-range {:label "Line spacing"
-                       :value (:y-line-space @ui-state)
-                       :on-change (fn [e]
-                                    (let [new-value ^js (.-target.value e)]
-                                      (redraw (swap! ui-state assoc :y-line-space (js/parseInt new-value)))))}]
-         [param-range {:label "Darkness amplitude"
-                       :value (:dark-ampl @ui-state)
-                       :max 8
-                       :on-change (fn [e]
-                                    (let [new-value ^js (.-target.value e)]
-                                      (redraw (swap! ui-state assoc :dark-ampl (js/parseInt new-value)))))}]
-         [param-range {:label "Lightness amplitude"
-                       :value (:light-ampl @ui-state)
-                       :max 8
-                       :on-change (fn [e]
-                                    (let [new-value ^js (.-target.value e)]
-                                      (redraw (swap! ui-state assoc :light-ampl (js/parseInt new-value)))))}]
-         [param-range {:label "Noise amplitude"
-                       :value (:noise-ampl @ui-state)
-                       :on-change (fn [e]
-                                    (let [new-value ^js (.-target.value e)]
-                                      (redraw (swap! ui-state assoc :noise-ampl (js/parseInt new-value)))))}]]]
-       [:button.shadow-2.pointer.bn.pv2.ph3.br3.grow.outline-0.mb1
-        {:style {:bottom 0 :background-color "#F3F4F6" }
-         :on-click (fn []
-                     (let [s (new js/XMLSerializer)]
-                       (->  (js/fetch "http://localhost:8000/plot"
-                                      (clj->js
-                                       {:method "POST"
-                                        :headers {"content-type" "application/json"}
-                                        :body (.serializeToString s @svg)}))
-                            (.catch prn))))}
-        [:span {:style {:font-size 32 :color "#111827"}} "Plot"]]]])
+        "Volatize image"]
+     [:div.absolute.h-100.flex.flex-column.justify-between.pr5.pt4
+      {:style {:opacity 1
+               :transition "all 0.5s 0.5s"
+               :top 0
+               :right 0}}
+      [:div.sans-serif
+       [:div.flex.flex-column
+        [param-range {:label "Line spacing"
+                      :value (:y-line-space @ui-state)
+                      :on-change (fn [e]
+                                   (let [new-value ^js (.-target.value e)]
+                                     (redraw (swap! ui-state assoc :y-line-space (js/parseInt new-value)))))}]
+        [param-range {:label "Darkness amplitude"
+                      :value (:dark-ampl @ui-state)
+                      :max 8
+                      :on-change (fn [e]
+                                   (let [new-value ^js (.-target.value e)]
+                                     (redraw (swap! ui-state assoc :dark-ampl (js/parseInt new-value)))))}]
+        [param-range {:label "Lightness amplitude"
+                      :value (:light-ampl @ui-state)
+                      :max 8
+                      :on-change (fn [e]
+                                   (let [new-value ^js (.-target.value e)]
+                                     (redraw (swap! ui-state assoc :light-ampl (js/parseInt new-value)))))}]
+        [param-range {:label "Noise amplitude"
+                      :value (:noise-ampl @ui-state)
+                      :on-change (fn [e]
+                                   (let [new-value ^js (.-target.value e)]
+                                     (redraw (swap! ui-state assoc :noise-ampl (js/parseInt new-value)))))}]]]
+      [:button.shadow-2.pointer.bn.pv2.ph3.br3.grow.outline-0.mb1
+       {:style {:bottom 0 :background-color "#F3F4F6" }
+        :on-click (fn []
+                    (let [s (new js/XMLSerializer)]
+                      (->  (js/fetch "http://localhost:8000/plot"
+                                     (clj->js
+                                      {:method "POST"
+                                       :headers {"content-type" "application/json"}
+                                       :body (.serializeToString s @svg)}))
+                           (.catch prn))))}
+       [:span {:style {:font-size 32 :color "#111827"}} "Plot"]]]]]])
 
-(defn init []
-  (.. worker (addEventListener "message" (fn [e]
-                                           (.transferFromImageBitmap
-                                            (.getContext (js/document.getElementById "canvas") "bitmaprenderer")
-                                            (.-data e))
-                                           (reset! loading-state "DONE")))))
+(defn init [])
 
 

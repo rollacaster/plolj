@@ -14,7 +14,4 @@
         :asset-path "/js"
         :modules {:main {:init-fn tech.thomas-sojka.plolj.core/init
                          :depends-on #{:shared}}
-                  :shared {:entries []}
-                  :worker {:init-fn tech.thomas-sojka.plolj.worker/init
-                           :web-worker true
-                           :depends-on #{:shared}}}}}}
+                  :shared {:entries []}}}}}
