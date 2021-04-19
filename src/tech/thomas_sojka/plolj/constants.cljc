@@ -8,8 +8,11 @@
 (defn cm->inch [cm]
   (* cm 0.393701))
 
+(defn cm->pixel [cm]
+  (* browser-dpi (cm->inch cm)))
+
 ;; DIN A6
-(def height (Math/floor (* browser-dpi (cm->inch height-in-cm))))
-(def width (Math/floor (* browser-dpi (cm->inch width-in-cm))))
+(def height (Math/floor (cm->pixel height-in-cm)))
+(def width (Math/floor (cm->pixel width-in-cm)))
 
 

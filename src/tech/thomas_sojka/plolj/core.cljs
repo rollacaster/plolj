@@ -11,7 +11,8 @@
              :display "flex"
              :align-items "center"}}
     [:> (.-Route router)
-     {:path "/"}
+     {:path "/"
+      :exact true}
      [volatize/main]]]])
 
 (dom/render [app] (js/document.getElementById "app"))
