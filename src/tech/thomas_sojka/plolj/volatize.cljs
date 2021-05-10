@@ -121,7 +121,7 @@
       :on-drop (fn [ev]
                  (.preventDefault ev)
                  (reset! loading-state "REMOVE_BG")
-                 (let [file (.getAsFile (first (vec ^js (.-dataTransfer.items ev))))]
+                 (let [file (.resolve js/Promise (.getAsFile (first (vec ^js (.-dataTransfer.items ev)))))]
                    (-> (if remove-bg? remove-bg file)
                        (.then create-url)
                        (.then (fn [image]
