@@ -2,7 +2,8 @@
   (:require [reagent.dom :as dom]
             [canvas2svg]
             [tech.thomas-sojka.plolj.volatize :as volatize]
-            ["react-router-dom" :as router]))
+            ["react-router-dom" :as router]
+            [tech.thomas-sojka.plolj.donut :as donut]))
 
 (defn app []
   [:> (.-BrowserRouter router)
@@ -13,7 +14,11 @@
     [:> (.-Route router)
      {:path "/"
       :exact true}
-     [volatize/main]]]])
+     [volatize/main]]
+    [:> (.-Route router)
+     {:path "/donut"
+      :exact true}
+     [donut/main]]]])
 
 (dom/render [app] (js/document.getElementById "app"))
 

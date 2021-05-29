@@ -99,6 +99,7 @@
                       (wrap-defaults api-defaults)
                       wrap-multipart-params
                       (wrap-cors
-                       :access-control-allow-origin [#"http://localhost:8080"]
+                       :access-control-allow-origin [#"http://localhost:8080"
+                                                     #"http://localhost:8083"]
                        :access-control-allow-methods [:get :put :post :delete]))
                   {:port 8000 :join? false})))
