@@ -3,6 +3,7 @@
             [canvas2svg]
             [tech.thomas-sojka.plolj.volatize :as volatize]
             ["react-router-dom" :as router]
+            [tech.thomas-sojka.plolj.sinogram :as sinogram]
             [tech.thomas-sojka.plolj.donut :as donut]))
 
 (defn app []
@@ -18,7 +19,11 @@
     [:> (.-Route router)
      {:path "/donut"
       :exact true}
-     [donut/main]]]])
+     [donut/main]]
+    [:> (.-Route router)
+     {:path "/sinogram"
+      :exact true}
+     [sinogram/main]]]])
 
 (dom/render [app] (js/document.getElementById "app"))
 
