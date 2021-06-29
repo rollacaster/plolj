@@ -4,7 +4,8 @@
             [tech.thomas-sojka.plolj.volatize :as volatize]
             ["react-router-dom" :as router]
             [tech.thomas-sojka.plolj.sinogram :as sinogram]
-            [tech.thomas-sojka.plolj.donut :as donut]))
+            [tech.thomas-sojka.plolj.donut :as donut]
+            [tech.thomas-sojka.plolj.circulation :as circulation]))
 
 (defn app []
   [:> (.-BrowserRouter router)
@@ -20,6 +21,10 @@
      {:path "/donut"
       :exact true}
      [donut/main]]
+    [:> (.-Route router)
+     {:path "/circulation"
+      :exact true}
+     [circulation/main]]
     [:> (.-Route router)
      {:path "/sinogram"
       :exact true}
