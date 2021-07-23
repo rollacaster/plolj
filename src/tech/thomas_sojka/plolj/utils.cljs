@@ -17,3 +17,9 @@
 
 (defn translate [x y]
   (str "translate(" (or x 0) "," (or y 0) ")"))
+
+(defn tr-and [a b]
+  (str a " " b))
+
+(defn scale [r]
+  (str "scale(" r ")"))
