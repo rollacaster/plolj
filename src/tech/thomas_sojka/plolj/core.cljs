@@ -1,11 +1,12 @@
 (ns tech.thomas-sojka.plolj.core
-  (:require [reagent.dom :as dom]
-            [canvas2svg]
-            [tech.thomas-sojka.plolj.volatize :as volatize]
-            ["react-router-dom" :as router]
-            [tech.thomas-sojka.plolj.sinogram :as sinogram]
+  (:require ["react-router-dom" :as router]
+            canvas2svg
+            [reagent.dom :as dom]
+            [tech.thomas-sojka.plolj.circulation :as circulation]
+            [tech.thomas-sojka.plolj.differential-growth :as differential-growth]
             [tech.thomas-sojka.plolj.donut :as donut]
-            [tech.thomas-sojka.plolj.circulation :as circulation]))
+            [tech.thomas-sojka.plolj.sinogram :as sinogram]
+            [tech.thomas-sojka.plolj.volatize :as volatize]))
 
 (defn app []
   [:> (.-BrowserRouter router)
@@ -28,7 +29,10 @@
     [:> (.-Route router)
      {:path "/sinogram"
       :exact true}
-     [sinogram/main]]]])
+     [sinogram/main]]
+    [:> (.-Route router)
+     {:path "/differential-growth"}
+     [differential-growth/main]]]])
 
 (dom/render [app] (js/document.getElementById "app"))
 
