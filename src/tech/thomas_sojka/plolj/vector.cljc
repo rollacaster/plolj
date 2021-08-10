@@ -7,17 +7,31 @@
   ([v1 v2 & vs]
    (apply add (add v1 v2) vs)))
 
-(defn sub [v1 v2]
-  (vector (- (first v1) (first v2))
-          (- (second v1) (second v2))))
+(defn sub
+  ([v1 v2]
+   (vector (- (first v1) (first v2))
+           (- (second v1) (second v2))))
+  ([v1 v2 & vs]
+   (apply sub (sub v1 v2) vs)))
 
-(defn mult [v1 n] (vector (* (first v1) n) (* (second v1) n)))
+(defn mult [v n]
+  (mapv (fn [i] (* i n)) v))
 
 (defn div [[x y] n] (if (or (= n 0) (= n 0.0))
                       (vector x y)
                       (vector (/ x n) (/ y n))))
 
-(defn mag [[x y]] (Math/sqrt (+ (* x x) (* y y))))
+(defn mag
+  ([v]
+   (Math/sqrt (apply + (map (fn [i] (* i i)) v)))))
+
+(defn dist [v1 v2]
+  (mag (sub v2 v1)))
+
+(defn unit [v]
+  (mult
+   v
+   (/ 1 (let [magnitude (mag v)] (if (= magnitude 0.0) 0.0001 magnitude)))))
 
 (defn normalize [v]
   (let [m (mag v)]

@@ -6,7 +6,9 @@
 
  :dependencies
  [[reagent "0.10.0"]
-  [thi.ng/color "1.4.0"]]
+  [thi.ng/color "1.4.0"]
+  [hashp/hashp "0.2.1"]
+  [org.clojure/test.check "1.1.0"]]
 
  :builds
  {:app {:target :browser
@@ -15,4 +17,5 @@
         :compiler-options {:output-feature-set :es6}
         :modules {:main {:init-fn tech.thomas-sojka.plolj.core/init
                          :depends-on #{:shared}}
-                  :shared {:entries []}}}}}
+                  :shared {:entries []}}
+        :devtools {:preloads [hashp.core]}}}}
