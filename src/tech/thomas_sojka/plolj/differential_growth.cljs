@@ -1,14 +1,14 @@
 (ns tech.thomas-sojka.plolj.differential-growth
-  (:require [reagent.core :as r]
+  (:require [clojure.spec.alpha :as s]
+            [clojure.spec.test.alpha :refer [check]]
+            [reagent.core :as r]
             [tech.thomas-sojka.plolj.components :refer [drawing-canvas]]
             [tech.thomas-sojka.plolj.mover
              :refer
-             [apply-force compute-position]]
+             [apply-force compute-position create-mover]]
             [tech.thomas-sojka.plolj.vector :as v]
-            [clojure.spec.alpha :as s]
             [clojure.test.check]
-            [clojure.test.check.properties]
-            [clojure.spec.test.alpha :refer [check]]))
+            [clojure.test.check.properties]))
 
 (def width 300)
 (def height 300)
@@ -17,25 +17,18 @@
 (defn h [p] (* p height))
 (def movers (r/atom [{:id 0 :mass 1, :location [90 150], :velocity [0 0], :acceleration [0 0]}
                      {:id 1 :mass 1, :location [210 150], :velocity [0 0], :acceleration [0 0]}
-                     {:id 2 :mass 1, :location [100 200], :velocity [0 0], :acceleration [0 0]}]))
-(comment
-  (check `go-to-neighbours)
-  (check `apply-force-to-all)
-  (check `grow)
-  (grow (second @movers) @movers)
+                     {:id 2 :mass 1, :location [100 200], :velocity [0 0], :acceleration [0 0]}
+                     #_{:id 3 :mass 1, :location [170 50], :velocity [0 0], :acceleration [0 0]}]))
 
-  (grow (first @movers) @movers)
-  (v/mult (v/sub (:location (second @movers)) (centroid @movers)) 0.001)
-  (v/mult (v/sub (:locatiom (first @movers)) (centroid @movers)) 0.001)
-  (v/mult (v/sub (:location (first @movers)) (centroid @movers)) 0.001)
-  )
 (defn d [[{[x y] :location} & rest]]
   (str "M " x " " y " " (apply str
                          (map (fn [{[x y] :location}]
                                 (str "L " x " " y " "))
                               rest))))
-(s/def ::mass float?)
-(s/def ::vector (s/tuple float? float?))
+
+(s/def ::valid-float (s/and float? (complement js/Number.isNaN)))
+(s/def ::mass ::valid-float)
+(s/def ::vector (s/tuple ::valid-float ::valid-float))
 (s/def ::location ::vector)
 (s/def ::velocity ::vector)
 (s/def ::acceleration ::vector)
@@ -52,6 +45,29 @@
 (s/fdef grow
   :args (s/cat :neighbours (s/coll-of ::mover))
   :ret ::vector)
+
+(s/fdef stay-inside
+  :args (s/cat :mover ::mover)
+  :ret ::mover)
+
+(defn add-neighbours [movers]
+  (let [with-neighbours
+        (vec
+         (apply mapcat
+                (fn [l r]
+                  (let [{[lx ly] :location} l
+                        {[rx ry] :location} r]
+                    [l
+                     (create-mover 1 [(/ (+ lx rx) 2) (/ (+ ly ry) 2)])
+                     r]))
+                (->> movers
+                     (map-indexed #(vector %1 %2))
+                     (group-by (fn [[idx _]] (even? idx)))
+                     vals
+                     (map (fn [movers] (map second movers))))))]
+    (if (odd? (count movers))
+      (conj with-neighbours (last movers))
+      with-neighbours)))
 
 (defn centroid [movers]
   (let [[x y] (reduce
@@ -83,28 +99,54 @@
         dir
         (v/mult
          (v/unit (v/sub (:location mover) location))
-         (* (if (< distance 20) 5 0))))))
+         (* (if (< distance 40) 0.5 0))))))
    [0 0]
    neighbours))
 
+(defn stay-inside [mover]
+  (-> mover
+      (update-in [:location 0] #(Math/max 0 (Math/min % (- width 20))))
+      (update-in [:location 1] #(Math/max 0 (Math/min % (- height 20))))))
 
+(stay-inside {:id 0, :mass 1, :location [500 150], :velocity [0 0], :acceleration [0 0]})
+
+(defn neighbours [idx movers]
+  (remove
+   nil?
+   [(nth movers (dec idx) nil)
+    (nth movers (inc idx) nil)]))
 
 (defn apply-force-to-all [movers]
-  (map (fn [mover]
+  (map-indexed (fn [idx mover]
          (-> mover
-             (apply-force (go-to-neighbours mover (remove #(= mover %) movers)))
+             (apply-force (go-to-neighbours mover (neighbours idx movers)))
              (apply-force (not-to-close mover (remove #(= mover %) movers)))
-             (apply-force (grow mover movers))
-             compute-position))
+             #_(apply-force (grow mover movers))
+
+             compute-position
+             stay-inside))
        movers))
 
 (defonce step (r/atom 0))
-(defn step! []
+(defonce interval (r/atom nil))
+
+(defn init []
+  (reset! step 0)
+  (js/window.clearInterval @interval)
+  #_(reset! interval
+          (js/window.setInterval
+           (fn [] (when (< @step 300)
+                   (swap! movers add-neighbours)))
+           1000)))
+(defn step! [time]
   (swap! movers apply-force-to-all)
   (when (< @step 300)
     (swap! step inc)
-    (js/window.requestAnimationFrame step!)))
-(reset! step 0)
+    (js/setTimeout
+     (fn []
+       (js/window.requestAnimationFrame step!))
+     80)))
+
 (defn main []
   (js/window.requestAnimationFrame step!)
   (fn []
@@ -124,4 +166,25 @@
          (fn [idx {[x y] :location}]
            ^{:key idx}
            [:circle {:cx x :cy y :r 5 :fill (if (= idx 0) "red" "blue")}])
+         @movers)
+        (map-indexed
+         (fn [idx {[vx vy] :velocity [lx ly] :location}]
+           (let [[vx vy] (v/mult [vx vy] 10)]
+             ^{:key idx}
+             [:line {:x1 lx :y1 ly :x2 (+ vx lx) :y2 (+ vy ly) :stroke "black" :stroke-width 2}]))
          @movers)]]]]))
+(init)
+
+(comment
+  (check `go-to-neighbours)
+  (check `apply-force-to-all)
+  (check `grow)
+  (check `stay-inside)
+
+  (grow (second @movers) @movers)
+
+  (grow (first @movers) @movers)
+  (v/mult (v/sub (:location (second @movers)) (centroid @movers)) 0.001)
+  (v/mult (v/sub (:locatiom (first @movers)) (centroid @movers)) 0.001)
+  (v/mult (v/sub (:location (first @movers)) (centroid @movers)) 0.001)
+  )
