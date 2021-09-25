@@ -8,31 +8,45 @@
             [tech.thomas-sojka.plolj.sinogram :as sinogram]
             [tech.thomas-sojka.plolj.volatize :as volatize]))
 
+(def projects [{:path "/volatize"
+                :component volatize/main}
+               {:path "/donut"
+                :component donut/main}
+               {:path "/circulation"
+                :component circulation/main}
+               {:path "/sinogram"
+                :component sinogram/main}
+               {:path "/differential-growth"
+                :component differential-growth/main}])
+
+(defn main []
+  [:div.pa4
+   (map
+    (fn [{:keys [path component]}]
+      ^{:key path}
+      [:div.mb3
+       [:> (.-Route router)
+        {:path path
+         :exact true}
+        [:div.overflow-hidden
+         {:style {:height "100vh"
+                  :display "flex"
+                  :align-items "center"}}
+         [component]]]] )
+    projects)])
+
 (defn app []
   [:> (.-BrowserRouter router)
-   [:div.overflow-hidden
-    {:style {:height "100vh"
-             :display "flex"
-             :align-items "center"}}
-    [:> (.-Route router)
-     {:path "/"
-      :exact true}
-     [volatize/main]]
-    [:> (.-Route router)
-     {:path "/donut"
-      :exact true}
-     [donut/main]]
-    [:> (.-Route router)
-     {:path "/circulation"
-      :exact true}
-     [circulation/main]]
-    [:> (.-Route router)
-     {:path "/sinogram"
-      :exact true}
-     [sinogram/main]]
-    [:> (.-Route router)
-     {:path "/differential-growth"}
-     [differential-growth/main]]]])
+   [:div.pa4
+    [:nav.flex
+     (map
+      (fn [{:keys [path]}]
+        ^{:key path}
+        [:div.pa2
+         [:> (.-Link router)
+          {:to path} path]])
+      projects)]]
+   [main]])
 
 (dom/render [app] (js/document.getElementById "app"))
 

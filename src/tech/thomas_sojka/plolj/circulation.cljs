@@ -19,8 +19,9 @@
 
 (defn circle [{:keys [x y color]}]
   [:<>
-   (map
-    (fn [r]
+   (map-indexed
+    (fn [idx r]
+      ^{:key idx}
       [:circle {:r r
                 :cx x
                 :cy y
@@ -64,6 +65,7 @@
       
       (map-indexed
        (fn [idx big-r]
+         ^{:key idx}
          [circles big-r idx])
        (range 0 140 20))]]
     [download-button {:element @element}]
