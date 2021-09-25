@@ -18,10 +18,10 @@
                 :component volatize/main}
                {:path "/donut"
                 :component donut/main}
-               {:path "/circulation"
-                :component circulation/main}
                {:path "/sinogram"
                 :component sinogram/main}
+               {:path "/circulation"
+                :component circulation/main}
                {:path "/differential-growth"
                 :component differential-growth/main}])
 

@@ -1,9 +1,13 @@
 (ns tech.thomas-sojka.plolj.eye-of-sine
-  (:require [thi.ng.geom.svg.core :as svg :refer [ellipse]]))
+  (:require [tech.thomas-sojka.plolj.components :refer [drawing-canvas]]
+            [thi.ng.geom.svg.core :as svg :refer [ellipse]]))
+
+(def width 300)
+(def height 300)
 
 (def scene
   (svg/svg
-   {:width 300 :height 300}
+   {:width width :height height}
    (vec
     (map-indexed
      (fn [idx g] ^{:key idx} g)
@@ -35,5 +39,6 @@
           (range rings)))))))
 
 (defn main []
-  [:div
-   (update scene 1 (fn [attribs] (dissoc attribs "xmlns:xlink")))])
+  [drawing-canvas {:width width :height height}
+   [:div
+    (update scene 1 (fn [attribs] (dissoc attribs "xmlns:xlink")))]])

@@ -51,7 +51,6 @@
            :height height
            :viewBox (str "0 0 " width " " height)
            :ref (fn [el] (when el (reset! element el)))}
-     [:rect {:fill "none" :stroke "black" :width (dec width) :height (dec height)}]
      [:g {:transform (str (translate (w 0.5) 0) " rotate(90)")}
       (for [offset (range 20 22 0.25)]
         [sine-wave {:key (str offset) :amplitude (h 0.4) :period 2 :offset offset}])

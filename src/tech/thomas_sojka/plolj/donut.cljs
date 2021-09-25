@@ -28,7 +28,6 @@
            :height height
            :viewBox (str "0 0 " width " " height)
            :ref (fn [el] (when el (reset! element el)))}
-     [:rect {:fill "none" :stroke "black" :width width :height height}]
      [:g
       {:transform (translate (/ width 2)
                              (/ height 2))}
