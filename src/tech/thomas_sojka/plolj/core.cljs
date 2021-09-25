@@ -6,9 +6,12 @@
             [tech.thomas-sojka.plolj.differential-growth :as differential-growth]
             [tech.thomas-sojka.plolj.donut :as donut]
             [tech.thomas-sojka.plolj.sinogram :as sinogram]
-            [tech.thomas-sojka.plolj.volatize :as volatize]))
+            [tech.thomas-sojka.plolj.volatize :as volatize]
+            [tech.thomas-sojka.plolj.eye-of-sine :as eye-of-sine]))
 
-(def projects [{:path "/volatize"
+(def projects [{:path "/eye-of-sine"
+                :component eye-of-sine/main}
+               {:path "/volatize"
                 :component volatize/main}
                {:path "/donut"
                 :component donut/main}

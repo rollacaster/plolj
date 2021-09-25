@@ -8,7 +8,8 @@
  [[reagent "0.10.0"]
   [thi.ng/color "1.4.0"]
   [hashp/hashp "0.2.1"]
-  [org.clojure/test.check "1.1.0"]]
+  [org.clojure/test.check "1.1.0"]
+  [thi.ng/geom "1.0.0-RC4"]]
 
  :builds
  {:app {:target :browser
