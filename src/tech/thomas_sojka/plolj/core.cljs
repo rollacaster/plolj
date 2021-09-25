@@ -7,10 +7,13 @@
             [tech.thomas-sojka.plolj.donut :as donut]
             [tech.thomas-sojka.plolj.sinogram :as sinogram]
             [tech.thomas-sojka.plolj.volatize :as volatize]
-            [tech.thomas-sojka.plolj.eye-of-sine :as eye-of-sine]))
+            [tech.thomas-sojka.plolj.eye-of-sine :as eye-of-sine]
+            [tech.thomas-sojka.plolj.tricles :as tricles]))
 
 (def projects [{:path "/eye-of-sine"
                 :component eye-of-sine/main}
+               {:path "/tricles"
+                :component tricles/main}
                {:path "/volatize"
                 :component volatize/main}
                {:path "/donut"
