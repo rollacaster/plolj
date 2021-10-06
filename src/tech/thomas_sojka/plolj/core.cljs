@@ -26,7 +26,7 @@
                 :component differential-growth/main}])
 
 (defn main []
-  [:div.pa4
+  [:div.ph4
    (map
     (fn [{:keys [path component]}]
       ^{:key path}
@@ -35,15 +35,14 @@
         {:path path
          :exact true}
         [:div.overflow-hidden
-         {:style {:height "100vh"
-                  :display "flex"
+         {:style {:display "flex"
                   :align-items "center"}}
          [component]]]] )
     projects)])
 
 (defn app []
   [:> (.-BrowserRouter router)
-   [:div.pa4
+   [:div.ph4
     [:nav.flex
      (map
       (fn [{:keys [path]}]

@@ -9,7 +9,8 @@
   [thi.ng/color "1.4.0"]
   [hashp/hashp "0.2.1"]
   [org.clojure/test.check "1.1.0"]
-  [thi.ng/geom "1.0.0-RC4"]]
+  [thi.ng/geom "1.0.0-RC4"]
+  [org.clojure/math.combinatorics "0.1.6"]]
 
  :builds
  {:app {:target :browser

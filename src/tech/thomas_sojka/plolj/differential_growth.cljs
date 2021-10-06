@@ -2,24 +2,19 @@
   (:require [cljs.pprint :refer [pprint]]
             [cljs.spec.gen.alpha :as gen]
             [clojure.spec.alpha :as s]
-            [clojure.test.check]
             [reagent.core :as r]
-            [reagent.dom :as dom]
             [tech.thomas-sojka.plolj.components :refer [drawing-canvas]]
             [tech.thomas-sojka.plolj.mover
              :refer
              [apply-force compute-position create-mover]]
-            [tech.thomas-sojka.plolj.vector :as v]))
+            [tech.thomas-sojka.plolj.vector :as v]
+            [clojure.math.combinatorics :as combo]))
 
 (def width 300)
 (def height 300)
 (def element (r/atom nil))
 (defn w [p] (* p width))
 (defn h [p] (* p height))
-(def movers (r/atom [{:id 0 :mass 1, :location [90 150], :velocity [0 0], :acceleration [0 0]}
-                     {:id 1 :mass 1, :location [210 150], :velocity [0 0], :acceleration [0 0]}
-                     {:id 2 :mass 1, :location [100 200], :velocity [0 0], :acceleration [0 0]}
-                     #_{:id 3 :mass 1, :location [170 50], :velocity [0 0], :acceleration [0 0]}]))
 
 (defn d [[{[x y] :location} & rest]]
   (str "M " x " " y " " (apply str
@@ -27,12 +22,12 @@
                                       (str "L " x " " y " "))
                                     rest))))
 
-(s/def ::valid-float (s/and float? (complement js/Number.isNaN)))
+(s/def ::valid-float (s/double-in :NaN? false :infinite? false))
 (s/def ::mass ::valid-float)
 (s/def ::vector (s/tuple ::valid-float ::valid-float))
 (s/def ::centered
   (s/double-in
-   :min 80 :max 200 :NaN? false ))
+   :min 80 :max 200 :NaN? false :infinite? false))
 
 (s/def ::location (s/tuple ::centered ::centered))
 (s/def ::velocity ::vector)
@@ -74,6 +69,14 @@
       (conj with-neighbours (last movers))
       with-neighbours)))
 
+(defn add-random-neighbour [movers]
+  (let [neighbours-idx (inc (rand-int (dec (count movers))))
+        {[lx ly] :location} (nth movers (dec neighbours-idx))
+        {[rx ry] :location} (nth movers neighbours-idx)]
+    (into (conj (vec (take neighbours-idx movers))
+                (create-mover 1 [(/ (+ lx rx) 2) (/ (+ ly ry) 2)]))
+          (vec (drop neighbours-idx movers)))))
+
 (defn centroid [movers]
   (let [[x y] (reduce
                (fn [points {:keys [location]}]
@@ -83,10 +86,12 @@
     [(/ x (count movers))
      (/ y (count movers))]))
 
-(defn grow [mover movers]
-  (v/mult (v/sub (:location mover) (centroid movers)) 0.001))
+#_(def options )
 
-(defn go-to-neighbours [mover neighbours]
+(defn grow [mover movers options]
+  (v/mult (v/sub (:location mover) (centroid movers)) (:grow options)))
+
+(defn go-to-neighbours [mover neighbours options]
   (v/mult
    (v/unit
     (reduce
@@ -94,27 +99,29 @@
        (v/add dir (v/sub location (:location mover))))
      [0 0]
      neighbours))
-   0.1))
+   (:go-to-neighbours options)))
 
 (defn nearby? [m1 m2]
   (< (v/dist (:location  m1) (:location m2)) 40))
 
-(defn not-to-close [mover movers]
-  (->> movers
-       (filter (partial nearby? mover))
-       (reduce
-        (fn [dir {:keys [location]}]
-          (v/add
-           dir
-           (v/mult
-            (v/unit (v/sub (:location mover) location))
-            0.5)))
-        [0 0])))
+(defn not-to-close [mover movers options]
+    (v/mult
+   (v/unit
+    (->> movers
+         (filter (partial nearby? mover))
+         (reduce
+          (fn [dir {:keys [location]}]
+            (v/add
+             dir
+             (v/sub (:location mover) location)))
+          [0 0])))
+   (:not-to-close options)))
 
 (defn stay-inside [mover]
   (-> mover
       (update-in [:location 0] #(Math/max 0 (Math/min % (- width 20))))
       (update-in [:location 1] #(Math/max 0 (Math/min % (- height 20))))))
+
 (defn middle-point [neighbours]
   [(/ (->> neighbours
            (map (comp first :location))
@@ -122,10 +129,13 @@
       2)
    (/ (->> neighbours
            (map (comp second :location))
-           (reduce +))2)])
-(defn stay-between-neighbours [mover neighbours]
-  (v/mult (v/unit (v/sub (middle-point neighbours) (:location mover)))
-          0.1))
+           (reduce +)) 2)])
+
+(defn stay-between-neighbours [mover neighbours options]
+  (if (> (count neighbours) 1)
+    (v/mult (v/unit (v/sub (middle-point neighbours) (:location mover)))
+            (:stay-between-neighbours options))
+    [0 0]))
 
 (defn neighbours [idx movers]
   (remove
@@ -133,84 +143,122 @@
    [(nth movers (dec idx) nil)
     (nth movers (inc idx) nil)]))
 
-(defn apply-force-to-all [movers]
+(defn apply-force-to-all [options movers]
   (map-indexed (fn [idx mover]
                  (-> mover
-                     (apply-force (go-to-neighbours mover (neighbours idx movers)))
-                     (apply-force (not-to-close mover (remove #(= mover %) movers)))
-                     (apply-force (stay-between-neighbours mover (neighbours idx movers)))
-                     #_(apply-force (grow mover movers))
+                     (apply-force (go-to-neighbours mover (neighbours idx movers) options))
+                     (apply-force (not-to-close mover (remove #(= mover %) movers) options))
+                     (apply-force (stay-between-neighbours mover (neighbours idx movers) options))
+                     (apply-force (grow mover movers options))
                      compute-position
                      stay-inside))
                movers))
 
-(defonce step (r/atom 0))
-(defonce interval (r/atom nil))
+(def timer (r/atom 0))
+(defonce start (r/atom nil))
+(def max-step 150)
 
-(defn step! []
-  (swap! movers apply-force-to-all)
-  (when (< @step 600)
-    (swap! step inc)
-    (js/window.requestAnimationFrame step!)))
+(defn step! [{:keys [movers step options stop]} curr-time]
+  (when-not @start
+    (reset! start curr-time))
+  (reset! timer curr-time)
+  (swap! movers (partial apply-force-to-all options))
+  (if (< @step max-step)
+    (do
+      (swap! step inc)
+      (js/window.requestAnimationFrame (partial step! {:movers movers :step step :options options :stop stop})))
+    (do
+      (reset! stop (js/Date.))
+      (reset! start nil))))
 
-(defn init []
+(defn init [{:keys [movers step interval options stop]}]
   (reset! step 0)
+  (reset! timer 0)
   (js/window.clearInterval @interval)
-  (reset! interval
-          (js/window.setInterval
-           (fn [] (when (< @step 300)
-                   (swap! movers add-neighbours)))
-           1000))
-  (js/window.requestAnimationFrame step!))
+  (prn "init"
+       (reset! interval
+               (js/window.setInterval
+                (fn [] (when (< @step max-step)
+                        (swap! movers add-random-neighbour)))
+                (:grow-interval options))))
+  (js/window.requestAnimationFrame (partial step! {:movers movers :step step :options options :stop stop})))
 
 
-(defn sketch [movers children]
-  [:div.flex.justify-center.w-100
-   [:div.absolute.top-1.left-1.dn
-    [:div (str "Distance: " 0)]]
-   [drawing-canvas {:width width :height height}
-    [:<>
-     [:svg
-      {:xmlns "http://www.w3.org/2000/svg"
-       :width width :height height
-       :style {:fontFamily "Playfair Display"}
-       :ref (fn [el] (when el (reset! element el)))}
-      (when (> (count movers) 0)
-        [:path {:d (d movers) :stroke "black" :fill "none"}])
-      children
-      (map-indexed
-       (fn [idx {[x y] :location}]
-         ^{:key idx}
-         [:circle {:cx x :cy y :r 5 :fill (if (= idx 1) "red" "blue")}])
-       movers)
-      (map-indexed
-       (fn [idx {[vx vy] :velocity [lx ly] :location}]
-         (let [[vx vy] (v/mult [vx vy] 10)]
-           ^{:key idx}
-           [:line {:x1 lx :y1 ly :x2 (+ vx lx) :y2 (+ vy ly) :stroke "black" :stroke-width 2}]))
-       movers)]]]])
+(defn sketch [options]
+  (let [movers (r/atom [{:id 0 :mass 1, :location [90 151], :velocity [0 0], :acceleration [0 0]}
+                        {:id 1 :mass 1, :location [150 150], :velocity [0 0], :acceleration [0 0]}
+                        {:id 2 :mass 1, :location [200 150], :velocity [0 0], :acceleration [0 0]}])
+        step (r/atom 0)
+        interval (r/atom nil)
+        stop (r/atom nil)]
+    (r/create-class
+     {:component-did-mount (fn [] (init {:movers movers :step step :interval interval :options options :stop stop}))
+      :component-will-unmount (fn []
+                                (prn "clear" @interval)
+                                                                (js/window.clearInterval @interval))
+      :reagent-render
+      (fn []
+        [:div.mr3
+         [:pre (with-out-str (cljs.pprint/pprint options))]
+         [:pre (Math/round (- @timer @start)) "ms / " @step]
+         [drawing-canvas {:width width :height height}
+          [:<>
+           
+           (let [movers @movers]
+             [:svg
+              {:xmlns "http://www.w3.org/2000/svg"
+               :width width :height height
+               :style {:fontFamily "Playfair Display"}
+               :ref (fn [el] (when el (reset! element el)))}
+              (when (> (count movers) 0)
+                [:path {:d (d movers) :stroke "black" :fill "none"}])
+              #_(map-indexed
+                 (fn [idx {[x y] :location}]
+                   ^{:key idx}
+                   [:circle {:cx x :cy y :r 5 :fill (if (= idx 1) "red" "blue")}])
+                 movers)
+              #_(map-indexed
+                 (fn [idx {[vx vy] :velocity [lx ly] :location}]
+                   (let [[vx vy] (v/mult [vx vy] 10)]
+                     ^{:key idx}
+                     [:line {:x1 lx :y1 ly :x2 (+ vx lx) :y2 (+ vy ly) :stroke "black" :stroke-width 2}]))
+                 movers)])]]])})))
+(defn round2
+  "Round a double to the given precision (number of significant digits)"
+  [precision d]
+  (let [factor (Math/pow 10 precision)]
+    (/ (Math/round (* d factor)) factor)))
 
 (defn main []
-  [sketch @movers])
+  [:div.flex.flex-wrap
+   (map
+    (fn [[go-to-neighbours
+         not-to-close
+         stay-between-neighbours]]
+      [:<>
+       [sketch {:go-to-neighbours go-to-neighbours
+                :stay-between-neighbours stay-between-neighbours
+                :not-to-close not-to-close
+                :grow 0.000
+                :grow-interval 20}]])
+    (combo/cartesian-product
+     (map (partial round2 2) (range 0.2 0.5 0.1))
+     (map (partial round2 2) (range 0.03 0.1 0.0699))
+     (map (partial round2 2) (range 0.03 0.1 0.0699))))])
 
-(init)
+
 
 (comment
   ;; WHAT HAPPENS with neighbours at the edge?
   (let [movers (take 3 (gen/sample (s/gen ::mover)))
         [mx my] (middle-point (neighbours 1 movers))]
-    (pprint
-     [movers
-      [mx my]
-      (neighbours 1 movers)])
-    (dom/render
-     (fn []
-       [:div.overflow-hidden
-        {:style {:height "100vh"
-                 :display "flex"
-                 :align-items "center"}}
-        [sketch
-         movers
-         [:circle {:cx mx :cy my :r 5 :fill "green"}]]])
-     (js/document.getElementById "app")))
+
+    (stay-between-neighbours
+     {:mass -1, :location [80 80], :velocity [0.5 1], :acceleration [0.5 -0.5]}
+     (neighbours
+       0
+       '({:mass -1, :location [80 80], :velocity [0.5 1], :acceleration [0.5 -0.5]}
+        {:mass 0.5, :location [128 128], :velocity [-2 0.5], :acceleration [1 0.5]}
+        {:mass 1, :location [128 128], :velocity [-2 3], :acceleration [-2 -2]})))
+)
   )
