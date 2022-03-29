@@ -1,15 +1,15 @@
 (ns tech.thomas-sojka.plolj.core
   (:require ["react-router-dom" :as router]
-            canvas2svg
             [reagent.dom :as dom]
             [tech.thomas-sojka.plolj.circulation :as circulation]
             [tech.thomas-sojka.plolj.differential-growth :as differential-growth]
             [tech.thomas-sojka.plolj.donut :as donut]
-            [tech.thomas-sojka.plolj.sinogram :as sinogram]
-            [tech.thomas-sojka.plolj.volatize :as volatize]
             [tech.thomas-sojka.plolj.eye-of-sine :as eye-of-sine]
+            [tech.thomas-sojka.plolj.l-system-tree :as l-system-tree]
+            [tech.thomas-sojka.plolj.sierpinski :as sierpinski]
+            [tech.thomas-sojka.plolj.sinogram :as sinogram]
             [tech.thomas-sojka.plolj.tricles :as tricles]
-            [tech.thomas-sojka.plolj.sierpinski :as sierpinski]))
+            [tech.thomas-sojka.plolj.volatize :as volatize]))
 
 (def projects [{:path "/eye-of-sine"
                 :component eye-of-sine/main}
@@ -26,7 +26,9 @@
                {:path "/sierpinski"
                 :component sierpinski/main}
                {:path "/differential-growth"
-                :component differential-growth/main}])
+                :component differential-growth/main}
+               {:path "/l-system-tree"
+                :component l-system-tree/main}])
 
 (defn main []
   [:div.ph4
