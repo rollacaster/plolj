@@ -1,6 +1,4 @@
-{:deps {rollacaster/clj-axidraw {:git/url "https://github.com/rollacaster/clj-axidraw"
-                                         :sha "e31824cf8def9dd01d9b3aa5a5f2e5eddf70f900"}
-        clj-http/clj-http {:mvn/version "3.12.1"}
+{:deps {clj-http/clj-http {:mvn/version "3.12.1"}
         ring/ring-defaults {:mvn/version "0.3.2"}
         ring/ring {:mvn/version "1.9.0"}
         ring/ring-jetty-adapter {:mvn/version "1.9.0"}
@@ -9,8 +7,8 @@
         net.mikera/imagez {:mvn/version "0.12.0"}
         thi.ng/color {:mvn/version "1.4.0"}
         thi.ng/geom {:mvn/version "1.0.0-RC4"}
-        image-resizer/image-resizer {:mvn/version "0.1.10"}
-        hashp/hashp {:mvn/version "0.2.1"}
-        org.clojure/test.check {:mvn/version "1.1.0"}
-        thheller/shadow-cljs {:mvn/version "2.17.8"}}
- :paths ["src" "resources"]}
+        thheller/shadow-cljs {:mvn/version "2.17.8"}
+        reagent/reagent {:mvn/version "1.1.1"}
+        org.clojure/math.combinatorics {:mvn/version "0.1.6"}}
+ :aliases {:dev {:extra-paths ["dev"]}}
+ :paths ["src/frontend" "src/backend" "resources"]}

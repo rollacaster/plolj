@@ -15,7 +15,7 @@
 (def loading-state (r/atom nil))
 (def svg (r/atom nil))
 (defonce ctx (atom nil))
-(defonce worker (js/Worker. "/js/worker.js"))
+#_(defonce worker (js/Worker. "/js/worker.js"))
 
 (defn param-range [{:keys [label value on-change max] :or {max 20}}]
   (let [uuid (str (random-uuid))]
