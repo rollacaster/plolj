@@ -1,5 +1,6 @@
 (ns tech.thomas-sojka.plolj.volatize
   (:require [reagent.core :as r]
+            [goog.functions :refer [debounce]]
             [tech.thomas-sojka.plolj.constants :refer [width height]]
             [thi.ng.color.core :as col]
             [thi.ng.math.core :as math]
@@ -99,7 +100,7 @@
        svg-element))))
 
 (def redraw
-  (goog.functions.debounce
+  (debounce
    (fn [params] (reset! svg (volatize-image @ctx params)))
    1000))
 

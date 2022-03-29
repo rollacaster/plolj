@@ -1,6 +1,5 @@
 (ns tech.thomas-sojka.plolj.differential-growth
   (:require [cljs.pprint :refer [pprint]]
-            [cljs.spec.gen.alpha :as gen]
             [clojure.spec.alpha :as s]
             [reagent.core :as r]
             [tech.thomas-sojka.plolj.components :refer [drawing-canvas]]
@@ -13,8 +12,6 @@
 (def width 300)
 (def height 300)
 (def element (r/atom nil))
-(defn w [p] (* p width))
-(defn h [p] (* p height))
 
 (defn d [[{[x y] :location} & rest]]
   (str "M " x " " y " " (apply str
@@ -50,7 +47,7 @@
   :args (s/cat :mover ::mover)
   :ret ::mover)
 
-(defn add-neighbours [movers]
+#_(defn add-neighbours [movers]
   (let [with-neighbours
         (vec
          (apply mapcat
@@ -199,7 +196,7 @@
       :reagent-render
       (fn []
         [:div.mr3
-         [:pre (with-out-str (cljs.pprint/pprint options))]
+         [:pre (with-out-str (pprint options))]
          [:pre (Math/round (- @timer @start)) "ms / " @step]
          [drawing-canvas {:width width :height height}
           [:<>
@@ -248,17 +245,14 @@
 
 
 
-(comment
-  ;; WHAT HAPPENS with neighbours at the edge?
-  (let [movers (take 3 (gen/sample (s/gen ::mover)))
+;; WHAT HAPPENS with neighbours at the edge?
+#_(let [movers (take 3 (gen/sample (s/gen ::mover)))
         [mx my] (middle-point (neighbours 1 movers))]
 
     (stay-between-neighbours
      {:mass -1, :location [80 80], :velocity [0.5 1], :acceleration [0.5 -0.5]}
      (neighbours
-       0
-       '({:mass -1, :location [80 80], :velocity [0.5 1], :acceleration [0.5 -0.5]}
+      0
+      '({:mass -1, :location [80 80], :velocity [0.5 1], :acceleration [0.5 -0.5]}
         {:mass 0.5, :location [128 128], :velocity [-2 0.5], :acceleration [1 0.5]}
-        {:mass 1, :location [128 128], :velocity [-2 3], :acceleration [-2 -2]})))
-)
-  )
+        {:mass 1, :location [128 128], :velocity [-2 3], :acceleration [-2 -2]}))))
