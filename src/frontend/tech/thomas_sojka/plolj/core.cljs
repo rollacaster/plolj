@@ -9,7 +9,8 @@
             [tech.thomas-sojka.plolj.sierpinski :as sierpinski]
             [tech.thomas-sojka.plolj.sinogram :as sinogram]
             [tech.thomas-sojka.plolj.tricles :as tricles]
-            [tech.thomas-sojka.plolj.volatize :as volatize]))
+            [tech.thomas-sojka.plolj.volatize :as volatize]
+            [tech.thomas-sojka.plolj.distortion :as distortion]))
 
 (def projects [{:path "/eye-of-sine"
                 :component eye-of-sine/main}
@@ -28,7 +29,9 @@
                {:path "/differential-growth"
                 :component differential-growth/main}
                {:path "/l-system-tree"
-                :component l-system-tree/main}])
+                :component l-system-tree/main}
+               {:path "/distortion"
+                :component distortion/main}])
 
 (defn main []
   [:div.ph4
@@ -62,5 +65,3 @@
 (dom/render [app] (js/document.getElementById "app"))
 
 (defn init [])
-
-
