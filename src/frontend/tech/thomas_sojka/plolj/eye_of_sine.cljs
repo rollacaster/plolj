@@ -1,5 +1,5 @@
 (ns tech.thomas-sojka.plolj.eye-of-sine
-  (:require [tech.thomas-sojka.plolj.components :refer [drawing-canvas]]
+  (:require [tech.thomas-sojka.plolj.components :refer [plot-canvas]]
             [thi.ng.geom.svg.core :as svg :refer [ellipse]]))
 
 (def width 300)
@@ -39,6 +39,5 @@
           (range rings)))))))
 
 (defn main []
-  [drawing-canvas {:width width :height height}
-   [:div
-    (update scene 1 (fn [attribs] (dissoc attribs "xmlns:xlink")))]])
+  [plot-canvas {:width width :height height}
+   (update scene 1 (fn [attribs] (dissoc attribs "xmlns:xlink")))])
