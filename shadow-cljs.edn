@@ -1,6 +1,5 @@
 ;; shadow-cljs configuration
-{:source-paths
- ["src/frontend"]
+{:deps true
 
  :dev-http {8083 "public/"}
 
@@ -8,5 +7,5 @@
  {:app {:target :browser
         :output-dir "public/js"
         :asset-path "/js"
-        :compiler-options {:output-feature-set :es6}
+        :compiler-options {:output-feature-set :es-next}
         :modules {:main {:init-fn tech.thomas-sojka.plolj.core/init}}}}}
