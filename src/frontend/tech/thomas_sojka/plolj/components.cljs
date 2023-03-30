@@ -44,11 +44,10 @@
 (defn plot-canvas []
   (let [svg-node! (r/atom nil)]
     (fn [{:keys [width height]} children]
-      (prn svg-node!)
       [:div
        [drawing-canvas {:width width :height height}
         [:svg
-         {:ref (fn [el] (prn el)(when el (reset! svg-node! el)))
+         {:ref (fn [el] (when el (reset! svg-node! el)))
           :xmlns "http://www.w3.org/2000/svg"
           :width width
           :height height}

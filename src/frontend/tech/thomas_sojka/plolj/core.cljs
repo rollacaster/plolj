@@ -10,7 +10,8 @@
             [tech.thomas-sojka.plolj.sinogram :as sinogram]
             [tech.thomas-sojka.plolj.tricles :as tricles]
             [tech.thomas-sojka.plolj.volatize :as volatize]
-            [tech.thomas-sojka.plolj.distortion :as distortion]))
+            [tech.thomas-sojka.plolj.distortion :as distortion]
+            [tech.thomas-sojka.plolj.stacked-waves :as stacked-waves]))
 
 (def projects [{:path "/eye-of-sine"
                 :component eye-of-sine/main}
@@ -31,7 +32,9 @@
                {:path "/l-system-tree"
                 :component l-system-tree/main}
                {:path "/distortion"
-                :component distortion/main}])
+                :component distortion/main}
+               {:path "/stacked-waves"
+                :component stacked-waves/main}])
 
 (defn main []
   [:div.ph4
